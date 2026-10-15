@@ -139,6 +139,26 @@ A firmware built with USB stdio **disabled** (e.g. a tiny no-USB blink) exposes
 no USB device at all → **only the physical BOOTSEL button** (or SWD via a probe)
 can reflash it. That is a deliberate trade in size and startup time.
 
+### Rust projects
+
+Rust firmware doesn't use the pico-sdk, so `picotool -f` (which relies on the
+SDK's *vendor* reset interface) does **not** work on it. Instead:
+
+- `pico-template/src/usb.rs` brings up a CDC-ACM device and implements the
+  **1200-baud touch** by calling `embassy_rp::rom_data::reset_to_usb_boot()`.
+  So `stty -F /dev/ttyACM0 1200` works, and `pico-template` wires that into
+  `cargo run` via `flash-runner.sh`.
+- A Rust project that doesn't bring up USB at all can only be reflashed with the
+  BOOTSEL button or a probe (this is the embassy-examples default).
+
+The template's `.cargo/config.toml` sets:
+
+```toml
+runner = ["bash", "flash-runner.sh"]
+```
+
+so `cargo run --release` does: 1200-baud reset → `picotool load` → reboot.
+
 ## Building
 
 Standard pico-sdk CMake project:
