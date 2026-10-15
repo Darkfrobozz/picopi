@@ -53,14 +53,28 @@ async fn main(spawner: Spawner) {
     )
     .await);
 
-    info!("wifi: joining \"{}\"", credentials!(wifi_ssid));
-    if let Err(e) = radio.join().await {
-        defmt::warn!("wifi: join failed: {:?}", e);
+    // Boot indicator: three quick onboard blinks, so there is visible feedback
+    // before we spend time associating. (The onboard LED is on the radio chip,
+    // so this goes through the actor.)
+    for _ in 0..3 {
+        radio.turn_led(true).await;
+        Timer::after_millis(120).await;
+        radio.turn_led(false).await;
+        Timer::after_millis(120).await;
     }
-    radio.wait_up().await;
-    info!("network: up");
 
-    // Onboard LED blink (goes through the radio actor).
+    info!("wifi: joining \"{}\"", credentials!(wifi_ssid));
+    match radio.join().await {
+        Ok(()) => {
+            // Only wait for DHCP if association actually succeeded, otherwise
+            // wait_link_up() would block forever.
+            radio.wait_up().await;
+            info!("network: up");
+        }
+        Err(e) => defmt::warn!("wifi: join failed: {:?}", e),
+    }
+
+    // Onboard LED blink, regardless of whether the join succeeded.
     let mut on = false;
     loop {
         on = !on;
