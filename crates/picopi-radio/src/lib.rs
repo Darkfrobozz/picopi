@@ -45,6 +45,8 @@
 
 #![no_std]
 
+pub mod httpd;
+
 use core::net::SocketAddr;
 
 use cyw43::JoinOptions;

@@ -1,42 +1,59 @@
-//! A tiny HTTP server — the Rust equivalent of the pico-sdk `httpd.c` example.
+//! A small HTTP server for the Pico W — the Rust counterpart of the pico-sdk
+//! `httpd.c` example.
 //!
-//! Serves a page that controls the onboard LED (which lives on the radio chip,
-//! so it is driven through [`Radio::turn_led`]).
+//! Serves a page that controls the onboard LED. The LED lives on the radio
+//! chip, so it is driven through [`Radio::turn_led`].
 //!
-//!   * `GET /`            -> HTML page with ON/OFF links
-//!   * `GET /led/on`      -> turn the onboard LED on
-//!   * `GET /led/off`     -> turn it off
-//!   * `GET /status`      -> JSON status (also used to discover the device)
+//! ```ignore
+//! // in main, after Radio::init(...)
+//! picopi_radio::httpd::serve(radio).await
+//! ```
 //!
-//! One connection at a time, `Connection: close`, no keep-alive. That is plenty
-//! for a control page and keeps the buffers on the stack.
+//! Routes:
+//!
+//! | Path | Effect |
+//! |---|---|
+//! | `GET /` | HTML page with ON/OFF links |
+//! | `GET /led/on` | onboard LED on |
+//! | `GET /led/off` | onboard LED off |
+//! | `GET /status` | JSON `{"device":"pico-light","led":<bool>,...}` |
+//!
+//! One connection at a time, `Connection: close`, stack buffers. That is plenty
+//! for a control page; for concurrency/keep-alive use a dedicated crate
+//! (`picoserve`) over [`Radio::stack`].
+//!
+//! The `/status` reply carries `"device":"pico-light"` so the board can be
+//! found on a LAN by probing port 80.
 
 use core::fmt::Write as _;
 
 use defmt::{info, warn};
 use embassy_time::Duration;
-use picopi_radio::embassy_net::tcp::{TcpListener, TcpSocket};
-use picopi_radio::embedded_io_async::{Read, Write};
-use picopi_radio::Radio;
 
-const PORT: u16 = 80;
+use crate::Radio;
+use crate::embassy_net::tcp::{TcpListener, TcpSocket};
+use crate::embedded_io_async::{Read, Write};
+
 const REQ_CAP: usize = 1024;
 const RESP_CAP: usize = 1024;
 
-/// Serve HTTP forever. Returns `!`, so `main` can end with `httpd::serve(radio).await`.
+/// Serve on port 80 forever.
 pub async fn serve(radio: Radio) -> ! {
+    serve_on(radio, 80).await
+}
+
+/// Serve on `port` forever. Returns `!`, so it can be the last expression in `main`.
+pub async fn serve_on(radio: Radio, port: u16) -> ! {
     let stack = radio.stack();
 
     let mut listener = match TcpListener::new(stack) {
         Ok(l) => l,
-        Err(_) => {
-            defmt::panic!("httpd: could not create listener");
-        }
+        Err(_) => defmt::panic!("httpd: could not create listener"),
     };
-    if listener.listen(PORT).is_err() {
-        defmt::panic!("httpd: could not bind port {}", PORT);
+    if listener.listen(port).is_err() {
+        defmt::panic!("httpd: could not bind port {}", port);
     }
-    info!("httpd: listening on port {}", PORT);
+    info!("httpd: listening on port {}", port);
 
     let mut led_on = false;
 
@@ -67,7 +84,7 @@ pub async fn serve(radio: Radio) -> ! {
             continue;
         }
 
-        if let Err(_) = handle(&mut socket, &radio, &mut led_on).await {
+        if handle(&mut socket, &radio, &mut led_on).await.is_err() {
             warn!("httpd: io error");
         }
         socket.close();

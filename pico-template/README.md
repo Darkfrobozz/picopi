@@ -1,14 +1,16 @@
 # pico-template
 
-Baseline Rust firmware for the **Raspberry Pi Pico W** (RP2040), used as the
-starting point for projects in this repo.
+Bare-bones starting point for a **Raspberry Pi Pico W** (RP2040) project.
 
-The radio is fully abstracted by **`../crates/picopi-radio`** — this project is
-just the application:
+It does the minimum: USB reset, one `Radio::init` call, join WiFi, blink the
+onboard LED. Everything radio-related lives in **`../crates/picopi-radio`**;
+that crate's `examples/` directory shows richer usage (HTTP server, external
+LED, connection objects).
+
+What is here:
 
 - **USB reset** (`src/usb.rs`): 1200-baud touch → BOOTSEL, so flashing is
   button-free
-- **External lamp** on GP15 (plain GPIO, blinks from boot, independent of radio)
 - **`Radio::init`** — one call: firmware upload, driver/net/actor tasks, DHCP
 - **`radio.join()` / `radio.wait_up()` / `radio.turn_led()`** — the onboard LED
   lives on the radio chip, so it goes through the radio handle

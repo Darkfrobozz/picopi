@@ -1,0 +1,150 @@
+//! Build script for pico-template.
+//!
+//! Two jobs:
+//!
+//! 1. **Linker setup** — stage `memory.x` and pass the embassy / cortex-m link
+//!    arguments to the linker.
+//! 2. **Credentials** — find a `credentials.toml`, parse it at *build time*,
+//!    and generate `$OUT_DIR/credentials.rs`, which `src/credentials.rs` pulls
+//!    in with `include!`. Secrets therefore never touch the filesystem at
+//!    runtime; they are compiled into the image.
+
+use std::env;
+use std::fs::{self, File};
+use std::io::Write;
+use std::path::{Path, PathBuf};
+
+fn main() {
+    linker();
+    credentials();
+}
+
+/// Stage `memory.x` and hand the linker the embassy/cortex-m arguments.
+fn linker() {
+    let out = PathBuf::from(env::var_os("OUT_DIR").expect("OUT_DIR is set by cargo"));
+    File::create(out.join("memory.x"))
+        .expect("create memory.x")
+        .write_all(include_bytes!("memory.x"))
+        .expect("write memory.x");
+
+    println!("cargo:rustc-link-search={}", out.display());
+    println!("cargo:rerun-if-changed=memory.x");
+
+    println!("cargo:rustc-link-arg-bins=--nmagic");
+    println!("cargo:rustc-link-arg-bins=-Tlink.x");
+    println!("cargo:rustc-link-arg-bins=-Tlink-rp.x");
+    println!("cargo:rustc-link-arg-bins=-Tdefmt.x");
+}
+
+/// Candidate credential files, in priority order. The `.example` files are
+/// placeholders and are only used as a last resort (with a warning).
+fn candidates(manifest: &Path) -> Vec<(PathBuf, bool)> {
+    let mut v = Vec::new();
+
+    // 1. explicit override
+    if let Some(p) = env::var_os("PICO_CREDENTIALS") {
+        v.push((PathBuf::from(p), false));
+    }
+
+    let repo_secrets = manifest.join("../secrets");
+
+    // 2. repo-level secrets/ (this is the intended location)
+    v.push((repo_secrets.join("credentials.toml"), false));
+    // 3. project-local secrets/
+    v.push((manifest.join("secrets/credentials.toml"), false));
+    // 4. per-user, outside the repo
+    if let Some(home) = env::var_os("HOME") {
+        v.push((
+            PathBuf::from(home).join(".config/picopi/credentials.toml"),
+            false,
+        ));
+    }
+    // 5. checked-in example (placeholders)
+    v.push((repo_secrets.join("credentials.toml.example"), true));
+    v.push((manifest.join("secrets/credentials.toml.example"), true));
+
+    v
+}
+
+fn credentials() {
+    let manifest =
+        PathBuf::from(env::var_os("CARGO_MANIFEST_DIR").expect("CARGO_MANIFEST_DIR is set"));
+    println!("cargo:rerun-if-env-changed=PICO_CREDENTIALS");
+    println!("cargo:rerun-if-env-changed=PICO_WIFI_SSID");
+    println!("cargo:rerun-if-env-changed=PICO_WIFI_PASSWORD");
+    println!("cargo:rerun-if-env-changed=PICO_WIFI_COUNTRY");
+
+    let found = candidates(&manifest).into_iter().find(|(p, _)| p.is_file());
+
+    let (path, is_example) = match found {
+        Some(x) => x,
+        None => panic!(
+            "pico-template: no credentials file found.\n\
+             Create secrets/credentials.toml (copy secrets/credentials.toml.example)\n\
+             or point $PICO_CREDENTIALS at one."
+        ),
+    };
+
+    println!("cargo:rerun-if-changed={}", path.display());
+
+    let text = fs::read_to_string(&path)
+        .unwrap_or_else(|e| panic!("pico-template: cannot read {}: {e}", path.display()));
+    let doc: toml::Value = text
+        .parse()
+        .unwrap_or_else(|e| panic!("pico-template: {}: invalid TOML: {e}", path.display()));
+
+    // Pull values out of the [wifi] block.
+    let wifi = doc.get("wifi");
+    let get = |key: &str| -> String {
+        wifi.and_then(|w| w.get(key))
+            .and_then(|v| v.as_str())
+            .unwrap_or_default()
+            .to_string()
+    };
+
+    let mut ssid = get("ssid");
+    let mut password = get("password");
+    let mut country = get("country");
+
+    // Environment variables override the file, so CI or a one-off build can
+    // supply secrets without editing the TOML.
+    if let Ok(v) = env::var("PICO_WIFI_SSID") {
+        ssid = v;
+    }
+    if let Ok(v) = env::var("PICO_WIFI_PASSWORD") {
+        password = v;
+    }
+    if let Ok(v) = env::var("PICO_WIFI_COUNTRY") {
+        country = v;
+    }
+
+    if is_example {
+        println!(
+            "cargo:warning=pico-template: using PLACEHOLDER credentials from {} \
+             - copy it to secrets/credentials.toml and fill in real values",
+            path.display()
+        );
+    }
+    if ssid.is_empty() {
+        println!(
+            "cargo:warning=pico-template: wifi.ssid is empty in {}",
+            path.display()
+        );
+    }
+
+    // Emit the generated Rust module. `{:?}` produces a properly escaped Rust
+    // string literal, so quotes/backslashes in passwords are handled.
+    let out = PathBuf::from(env::var_os("OUT_DIR").expect("OUT_DIR is set by cargo"));
+    let mut f = File::create(out.join("credentials.rs")).expect("create credentials.rs");
+    writeln!(f, "// @generated by build.rs - do not edit.").unwrap();
+    writeln!(f, "// Source: {}", path.display()).unwrap();
+    writeln!(f, "pub const WIFI_SSID: &str = {ssid:?};").unwrap();
+    writeln!(f, "pub const WIFI_PASSWORD: &str = {password:?};").unwrap();
+    writeln!(f, "pub const WIFI_COUNTRY: &str = {country:?};").unwrap();
+    writeln!(
+        f,
+        "pub const SOURCE: &str = {:?};",
+        path.display().to_string()
+    )
+    .unwrap();
+}

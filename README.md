@@ -18,8 +18,9 @@ project. New projects start from `pico-template/`.
 │   └── credentials.toml         real secrets — GITIGNORED, never commit
 ├── firmware/                    CYW43439 vendor blobs (gitignored) + fetch script
 ├── crates/
-│   └── picopi-radio/            the radio abstraction (actor + connections)
-└── pico-template/               baseline Rust firmware for the Pico W
+│   └── picopi-radio/            the radio abstraction (actor + httpd + examples)
+├── pico-template/               bare-bones Pico W project skeleton
+└── dc-motor/                    project skeleton that blinks both LEDs
 ```
 
 ## Flashing
@@ -53,15 +54,24 @@ values into the firmware, so nothing is read from disk at runtime. Search order
 4. `~/.config/picopi/credentials.toml`
 5. `secrets/credentials.toml.example` — placeholders, with a build warning
 
-## The template
+## Projects
 
-`pico-template/` is the baseline Rust firmware. All the radio work lives in
-**`crates/picopi-radio`**, so the application is just `Radio::init(...)` plus a
-loop. `pico-template/src/main.rs` fits in ~70 lines: USB reset, an external
-lamp on GP15, and `turn_led`/`join`/`wait_up` calls on the radio handle.
+- **`pico-template/`** — bare-bones skeleton: USB reset, `Radio::init`, join,
+onboard-LED blink.
+- **`dc-motor/`** — skeleton that blinks GP15 *and* the onboard LED; the
+starting point for the motor controller.
 
-`picopi-radio` exposes a small handle that hands out TCP connection objects —
-see [`crates/picopi-radio/README.md`](crates/picopi-radio/README.md) for the
+Both are just applications on top of **`crates/picopi-radio`**, which does all
+the radio work and also provides a small HTTP server. Usage examples live in
+that crate:
+
+```bash
+cd crates/picopi-radio
+cargo run --release --example blink
+cargo run --release --example httpd      # needs PICO_WIFI_SSID/PASSWORD
+```
+
+See [`crates/picopi-radio/README.md`](crates/picopi-radio/README.md) for the
 design (two planes: an actor for radio control, handles for data).
 
 Start a new project by copying the template:

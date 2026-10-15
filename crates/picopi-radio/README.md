@@ -76,6 +76,41 @@ repo's shared `firmware/` directory (`43439A0.bin`, `43439A0_clm.bin`,
 `nvram_rp2040.bin`). Run `firmware/fetch-firmware.sh` once after cloning — the
 crate's `build.rs` fails with a clear message if they are missing.
 
+## HTTP server
+
+`picopi_radio::httpd` is a small async HTTP/1.1 server — the `httpd.c`
+equivalent — that controls the onboard LED:
+
+| Path | Effect |
+|---|---|
+| `GET /` | page with ON/OFF links |
+| `GET /led/on` / `/led/off` | onboard LED |
+| `GET /status` | JSON, carries `"device":"pico-light"` for LAN discovery |
+
+```rust
+radio.join().await?;
+radio.wait_up().await;
+picopi_radio::httpd::serve(radio).await     // port 80, never returns
+```
+
+One connection at a time, `Connection: close`, stack buffers. For concurrency
+or keep-alive, use `picoserve` over [`Radio::stack`].
+
+## Examples
+
+`examples/` holds full firmware binaries (they build for `thumbv6m-none-eabi`
+and flash like a project):
+
+```bash
+cargo run --release --example blink          # onboard LED blink
+PICO_WIFI_SSID=Beacon PICO_WIFI_PASSWORD=… \
+    cargo run --release --example httpd      # WiFi + HTTP control page
+```
+
+`examples/common/mod.rs` carries the shared USB reset (so flashing needs no
+BOOTSEL button) and the example credentials (read from the environment at
+compile time).
+
 ## Tuning
 
 `src/lib.rs` top:

@@ -1,0 +1,11 @@
+[target.'cfg(all(target_arch = "arm", target_os = "none"))']
+# `cargo run` flashes over USB with picotool — no SWD probe, no BOOTSEL button.
+# The script asks the running firmware for a 1200-baud reset (see src/usb.rs),
+# loads the ELF, and reboots. See also ../FLASHING.md.
+runner = ["bash", "flash-runner.sh"]
+
+[build]
+target = "thumbv6m-none-eabi"        # Cortex-M0+ (RP2040)
+
+[env]
+DEFMT_LOG = "info"

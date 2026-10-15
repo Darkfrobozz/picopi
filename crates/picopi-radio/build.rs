@@ -1,12 +1,19 @@
-//! Build script: make sure the CYW43439 firmware blobs are present.
+//! Build script for `picopi-radio`.
 //!
-//! They live in the repo's shared `firmware/` directory and are gitignored, so
-//! a fresh clone must run `firmware/fetch-firmware.sh` once. Fail with a clear
-//! message instead of a cryptic `include_bytes!` error.
+//! 1. Make sure the CYW43439 firmware blobs are present (they live in the
+//!    repo's shared `firmware/` directory and are gitignored).
+//! 2. Set up linking for the crate's `examples/`, which are full firmware
+//!    binaries: stage `memory.x` and pass the cortex-m / embassy / defmt linker
+//!    arguments.
 
 use std::path::PathBuf;
 
 fn main() {
+    firmware();
+    example_linker();
+}
+
+fn firmware() {
     let manifest = PathBuf::from(std::env::var_os("CARGO_MANIFEST_DIR").unwrap());
     let firmware = manifest.join("../../firmware");
 
@@ -22,6 +29,17 @@ fn main() {
         }
         println!("cargo:rerun-if-changed={}", path.display());
     }
+}
 
-    println!("cargo:rerun-if-changed=build.rs");
+fn example_linker() {
+    let out = PathBuf::from(std::env::var_os("OUT_DIR").unwrap());
+    std::fs::write(out.join("memory.x"), include_bytes!("memory.x")).expect("write memory.x");
+
+    println!("cargo:rustc-link-search={}", out.display());
+    println!("cargo:rerun-if-changed=memory.x");
+
+    println!("cargo:rustc-link-arg-examples=--nmagic");
+    println!("cargo:rustc-link-arg-examples=-Tlink.x");
+    println!("cargo:rustc-link-arg-examples=-Tlink-rp.x");
+    println!("cargo:rustc-link-arg-examples=-Tdefmt.x");
 }
