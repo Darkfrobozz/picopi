@@ -17,6 +17,8 @@ project. New projects start from `pico-template/`.
 │   ├── credentials.toml.example committed template, safe to share
 │   └── credentials.toml         real secrets — GITIGNORED, never commit
 ├── firmware/                    CYW43439 vendor blobs (gitignored) + fetch script
+├── crates/
+│   └── picopi-radio/            the radio abstraction (actor + connections)
 └── pico-template/               baseline Rust firmware for the Pico W
 ```
 
@@ -53,9 +55,16 @@ values into the firmware, so nothing is read from disk at runtime. Search order
 
 ## The template
 
-`pico-template/` is the baseline Rust firmware: `embassy-rp` + `cyw43` +
-`embassy-net`, DHCPv4, WiFi association using the build-time credentials, and a
-1 Hz onboard-LED blink. Start a new project by copying it:
+`pico-template/` is the baseline Rust firmware. All the radio work lives in
+**`crates/picopi-radio`**, so the application is just `Radio::init(...)` plus a
+loop. `pico-template/src/main.rs` fits in ~70 lines: USB reset, an external
+lamp on GP15, and `turn_led`/`join`/`wait_up` calls on the radio handle.
+
+`picopi-radio` exposes a small handle that hands out TCP connection objects —
+see [`crates/picopi-radio/README.md`](crates/picopi-radio/README.md) for the
+design (two planes: an actor for radio control, handles for data).
+
+Start a new project by copying the template:
 
 ```bash
 cp -r pico-template my-project

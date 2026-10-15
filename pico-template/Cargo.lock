@@ -486,6 +486,7 @@ dependencies = [
  "embassy-sync",
  "embassy-time",
  "embedded-io-async 0.7.0",
+ "embedded-nal-async",
  "heapless",
  "xarxa",
  "xarxa-driver",
@@ -549,6 +550,7 @@ source = "git+https://github.com/embassy-rs/embassy?rev=8573b7004382e061826699ef
 dependencies = [
  "cfg-if",
  "critical-section",
+ "defmt",
  "embedded-io-async 0.7.0",
  "futures-core",
  "futures-sink",
@@ -673,6 +675,25 @@ checksum = "2564b9f813c544241430e147d8bc454815ef9ac998878d30cc3055449f7fd4c0"
 dependencies = [
  "defmt",
  "embedded-io 0.7.1",
+]
+
+[[package]]
+name = "embedded-nal"
+version = "0.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c56a28be191a992f28f178ec338a0bf02f63d7803244add736d026a471e6ed77"
+dependencies = [
+ "nb 1.1.0",
+]
+
+[[package]]
+name = "embedded-nal-async"
+version = "0.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "eb5a1bd585135d302f8f6d7de329310938093da6271b37a6c94b8798795c0c6d"
+dependencies = [
+ "embedded-io-async 0.7.0",
+ "embedded-nal",
 ]
 
 [[package]]
@@ -1126,19 +1147,35 @@ version = "0.1.0"
 dependencies = [
  "cortex-m-rt",
  "critical-section",
- "cyw43",
- "cyw43-pio",
  "defmt",
  "defmt-rtt",
  "embassy-executor",
- "embassy-net",
  "embassy-rp",
  "embassy-time",
  "embassy-usb",
  "panic-probe",
+ "picopi-radio",
  "portable-atomic",
  "static_cell",
  "toml",
+]
+
+[[package]]
+name = "picopi-radio"
+version = "0.1.0"
+dependencies = [
+ "cyw43",
+ "cyw43-pio",
+ "defmt",
+ "embassy-executor",
+ "embassy-net",
+ "embassy-rp",
+ "embassy-sync",
+ "embassy-time",
+ "embedded-io-async 0.7.0",
+ "embedded-nal-async",
+ "portable-atomic",
+ "static_cell",
 ]
 
 [[package]]

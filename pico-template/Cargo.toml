@@ -10,13 +10,15 @@ publish = false
 #
 # The published embassy-* crates on crates.io lag behind `main` and have a
 # different API (e.g. `Output<'d, PIN>` vs `Output<'d>`, different `PioSpi::new`
-# / `Stack::new` signatures, `proto-ipv4` vs `ipv4`). This template follows the
-# embassy examples, so it tracks the same revision.
+# / `Stack::new` signatures, `proto-ipv4` vs `ipv4`). picopi-radio and this
+# template must use the same revision.
 #
 # To update: pick a new commit from https://github.com/embassy-rs/embassy and
-# replace every `rev` below with the same value.
+# replace every `rev` below, in both this file and crates/picopi-radio/.
 # ---------------------------------------------------------------------------
 [dependencies]
+picopi-radio = { path = "../crates/picopi-radio" }
+
 embassy-executor = { git = "https://github.com/embassy-rs/embassy", rev = "8573b7004382e061826699efb3491362a27d076f", features = ["defmt"] }
 embassy-time = { git = "https://github.com/embassy-rs/embassy", rev = "8573b7004382e061826699efb3491362a27d076f", features = ["defmt", "defmt-timestamp-uptime"] }
 embassy-rp = { git = "https://github.com/embassy-rs/embassy", rev = "8573b7004382e061826699efb3491362a27d076f", features = [
@@ -28,16 +30,6 @@ embassy-rp = { git = "https://github.com/embassy-rs/embassy", rev = "8573b700438
     "executor-thread",
     "executor-interrupt",
 ] }
-embassy-net = { git = "https://github.com/embassy-rs/embassy", rev = "8573b7004382e061826699efb3491362a27d076f", features = [
-    "defmt",
-    "tcp",
-    "udp",
-    "dhcpv4",
-    "medium-ethernet",
-    "ipv4",
-] }
-cyw43 = { git = "https://github.com/embassy-rs/embassy", rev = "8573b7004382e061826699efb3491362a27d076f", features = ["defmt", "firmware-logs"] }
-cyw43-pio = { git = "https://github.com/embassy-rs/embassy", rev = "8573b7004382e061826699efb3491362a27d076f", features = ["defmt"] }
 # USB CDC used only to implement the 1200-baud BOOTSEL reset (src/usb.rs).
 embassy-usb = { git = "https://github.com/embassy-rs/embassy", rev = "8573b7004382e061826699efb3491362a27d076f", default-features = false, features = ["defmt"] }
 

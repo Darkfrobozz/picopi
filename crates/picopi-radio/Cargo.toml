@@ -1,0 +1,43 @@
+[package]
+name = "picopi-radio"
+version = "0.1.0"
+edition = "2024"
+license = "MIT OR Apache-2.0"
+publish = false
+description = "One-call CYW43439 radio abstraction for the Raspberry Pi Pico W"
+
+# ---------------------------------------------------------------------------
+# Embassy is pinned to a `main` revision; see pico-template/Cargo.toml for why.
+# Keep this `rev` identical to the one in pico-template/Cargo.toml.
+# ---------------------------------------------------------------------------
+[dependencies]
+embassy-executor = { git = "https://github.com/embassy-rs/embassy", rev = "8573b7004382e061826699efb3491362a27d076f", features = ["defmt"] }
+embassy-time = { git = "https://github.com/embassy-rs/embassy", rev = "8573b7004382e061826699efb3491362a27d076f", features = ["defmt", "defmt-timestamp-uptime"] }
+embassy-sync = { git = "https://github.com/embassy-rs/embassy", rev = "8573b7004382e061826699efb3491362a27d076f", features = ["defmt"] }
+embassy-rp = { git = "https://github.com/embassy-rs/embassy", rev = "8573b7004382e061826699efb3491362a27d076f", features = [
+    "defmt",
+    "unstable-pac",
+    "time-driver",
+    "critical-section-impl",
+    "rp2040",
+    "executor-thread",
+    "executor-interrupt",
+] }
+# `embedded-nal` enables tcp::client, which is how connections are handed out.
+embassy-net = { git = "https://github.com/embassy-rs/embassy", rev = "8573b7004382e061826699efb3491362a27d076f", features = [
+    "defmt",
+    "tcp",
+    "udp",
+    "dhcpv4",
+    "medium-ethernet",
+    "ipv4",
+    "embedded-nal",
+] }
+cyw43 = { git = "https://github.com/embassy-rs/embassy", rev = "8573b7004382e061826699efb3491362a27d076f", features = ["defmt", "firmware-logs"] }
+cyw43-pio = { git = "https://github.com/embassy-rs/embassy", rev = "8573b7004382e061826699efb3491362a27d076f", features = ["defmt"] }
+
+embedded-nal-async = "0.9"
+embedded-io-async = "0.7"
+defmt = "1.0.1"
+static_cell = "2.1"
+portable-atomic = { version = "1.5", features = ["critical-section"] }

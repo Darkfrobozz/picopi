@@ -3,14 +3,15 @@
 Baseline Rust firmware for the **Raspberry Pi Pico W** (RP2040), used as the
 starting point for projects in this repo.
 
-What it sets up:
+The radio is fully abstracted by **`../crates/picopi-radio`** — this project is
+just the application:
 
-- **CYW43439 radio** over gSPI (PIO + DMA) — see the top-level `README` and the
-  notes in `FLASHING.md`
-- **`embassy-net`** stack with DHCPv4
-- **WiFi association** using credentials baked in at build time
-- **LED blinks** — GP15 (plain GPIO, plus/minus any external LED you attach) from
-  boot, and the onboard LED (`WL_GPIO0` on the radio) once setup is done
+- **USB reset** (`src/usb.rs`): 1200-baud touch → BOOTSEL, so flashing is
+  button-free
+- **External lamp** on GP15 (plain GPIO, blinks from boot, independent of radio)
+- **`Radio::init`** — one call: firmware upload, driver/net/actor tasks, DHCP
+- **`radio.join()` / `radio.wait_up()` / `radio.turn_led()`** — the onboard LED
+  lives on the radio chip, so it goes through the radio handle
 
 ## Build & flash
 
@@ -91,10 +92,13 @@ pico-template/
 ├── .cargo/config.toml  target + flash runner + DEFMT_LOG
 ├── README.md
 └── src/
-    ├── main.rs         tasks: cyw43 runner, net runner, lamp, main
+    ├── main.rs         application: radio handle + lamp
     ├── usb.rs          USB CDC that implements the 1200-baud BOOTSEL reset
     └── credentials.rs  include!(generated) + credentials! macro
 ```
+
+Note the radio itself is *not* in here — it is `../crates/picopi-radio`,
+shared by every project in the repo.
 
 ## Starting a new project
 
