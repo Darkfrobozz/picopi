@@ -17,7 +17,9 @@ firmware/*.bin
 target/
 **/target/
 *.rs.bk
-# Cargo.lock is intentionally committed (these are binaries, not libraries).
+# The template is the build entry point, so its Cargo.lock is committed.
+# Library crates under crates/ are always built through it.
+crates/*/Cargo.lock
 
 # ---------------------------------------------------------------------------
 # Pico / CMake build output
