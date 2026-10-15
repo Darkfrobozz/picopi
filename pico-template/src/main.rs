@@ -13,6 +13,7 @@
 #![no_main]
 
 mod credentials;
+mod httpd;
 mod usb;
 
 use defmt::{info, unwrap};
@@ -74,11 +75,6 @@ async fn main(spawner: Spawner) {
         Err(e) => defmt::warn!("wifi: join failed: {:?}", e),
     }
 
-    // Onboard LED blink, regardless of whether the join succeeded.
-    let mut on = false;
-    loop {
-        on = !on;
-        radio.turn_led(on).await;
-        Timer::after(BLINK).await;
-    }
+    // Hand the onboard LED to the HTTP server and serve forever.
+    httpd::serve(radio).await
 }

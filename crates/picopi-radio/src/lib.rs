@@ -70,6 +70,9 @@ use static_cell::StaticCell;
 pub use cyw43;
 /// Escape hatch: the raw network stack types.
 pub use embassy_net;
+/// The async IO traits used to read/write sockets, re-exported so callers
+/// cannot pull a mismatched version.
+pub use embedded_io_async;
 
 /// Number of packet buffers in the stack's RX pool.
 const RX_POOL: usize = 16;

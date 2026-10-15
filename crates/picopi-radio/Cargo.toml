@@ -27,6 +27,7 @@ embassy-rp = { git = "https://github.com/embassy-rs/embassy", rev = "8573b700438
 embassy-net = { git = "https://github.com/embassy-rs/embassy", rev = "8573b7004382e061826699efb3491362a27d076f", features = [
     "defmt",
     "tcp",
+    "tcp-listener",
     "udp",
     "dhcpv4",
     "medium-ethernet",
