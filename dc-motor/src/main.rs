@@ -1,11 +1,11 @@
 //! dc-motor — Pico W project skeleton for driving brushed DC motors.
 //!
-//! * **GP16** — PWM motor output (`src/motor.rs`), drives a low-side N-MOSFET.
+//! * **GP15** — PWM motor output (`src/motor.rs`), drives a low-side N-MOSFET.
 //!   Runs a slow spin-up / spin-down bench test.
-//! * **GP15** — a plain GPIO, blinks from boot, independent of the radio.
+//! * **GP16** — plain GPIO status LED (optional; move or remove freely).
 //! * **onboard LED** — lives on the radio chip, driven via `Radio::turn_led`.
 //!
-//! Change `MOTOR_PIN`/`MOTOR_SLICE` below if your gate is on another GPIO.
+//! GP15 is PWM slice 7, channel B (odd GPIO), hence `Motor::new_b`.
 
 #![no_std]
 #![no_main]
@@ -62,11 +62,11 @@ async fn main(spawner: Spawner) {
     // no BOOTSEL button.
     usb::init(&spawner, p.USB);
 
-    // GP15 starts blinking right away.
-    spawner.spawn(unwrap!(lamp(Output::new(p.PIN_15, Level::Low))));
+    // Status LED on GP16.
+    spawner.spawn(unwrap!(lamp(Output::new(p.PIN_16, Level::Low))));
 
-    // Motor output on GP16 (PWM slice 0, channel A).
-    spawner.spawn(unwrap!(motor_task(Motor::new(p.PWM_SLICE0, p.PIN_16))));
+    // Motor output on GP15 (PWM slice 7, channel B).
+    spawner.spawn(unwrap!(motor_task(Motor::new_b(p.PWM_SLICE7, p.PIN_15))));
 
     // Radio bring-up (firmware upload, driver/net/actor tasks). No join().
     let radio = unwrap!(Radio::init(
