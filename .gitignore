@@ -1,0 +1,39 @@
+# ---------------------------------------------------------------------------
+# Secrets — the real credentials file must never be committed.
+# The committed example stays.
+# ---------------------------------------------------------------------------
+secrets/credentials.toml
+secrets/*.toml
+!secrets/credentials.toml.example
+
+# ---------------------------------------------------------------------------
+# CYW43439 vendor firmware blobs (fetched by firmware/fetch-firmware.sh)
+# ---------------------------------------------------------------------------
+firmware/*.bin
+
+# ---------------------------------------------------------------------------
+# Rust
+# ---------------------------------------------------------------------------
+target/
+**/target/
+*.rs.bk
+# Cargo.lock is intentionally committed (these are binaries, not libraries).
+
+# ---------------------------------------------------------------------------
+# Pico / CMake build output
+# ---------------------------------------------------------------------------
+build/
+*.uf2
+*.elf
+*.map
+*.dis
+*.hex
+# note: .bin is only ignored under firmware/ above, so C project outputs are
+# caught by build/ instead.
+
+# ---------------------------------------------------------------------------
+# Editor / OS junk
+# ---------------------------------------------------------------------------
+*.swp
+*~
+.DS_Store
